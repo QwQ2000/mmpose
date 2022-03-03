@@ -243,17 +243,11 @@ class PoseFormer(BaseBackbone):
                                     init_cfg=init_cfg)
             for i in range(depth)])
 
-        self.spatial_norm = build_norm_layer(norm_cfg, embed_dim_ratio)
-        self.temporal_norm = build_norm_layer(norm_cfg, embed_dim)
+        self.spatial_norm = build_norm_layer(norm_cfg, embed_dim_ratio)[1]
+        self.temporal_norm = build_norm_layer(norm_cfg, embed_dim)[1]
 
         # An easy way to implement weighted mean
         self.weighted_mean = torch.nn.Conv1d(in_channels=num_frame, out_channels=1, kernel_size=1)
-
-        self.head = nn.Sequential(
-            nn.LayerNorm(embed_dim),
-            nn.Linear(embed_dim , out_dim),
-        )
-
 
     def spatial_forward_features(self, x):
         # b is batch size, f is number of frames, p is number of joints
@@ -285,15 +279,11 @@ class PoseFormer(BaseBackbone):
         x = x.view(b, 1, -1)
         return x
 
-
     def forward(self, x):
         x = x.permute(0, 3, 1, 2)
         b, _, _, p = x.shape
         # Now x is [batch_size, 2 channels, receptive frames, joint_num], following image data
         x = self.spatial_forward_features(x)
         x = self.forward_features(x)
-        x = self.head(x)
-
-        x = x.view(b, 1, p, -1)
 
         return x 
